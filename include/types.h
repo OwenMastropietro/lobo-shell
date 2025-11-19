@@ -29,3 +29,17 @@ typedef struct TokenStream {
     Token *tokens;
     int size;
 } TokenStream;
+
+typedef struct Command {
+    char **argv;
+    char *infile;
+    char *outfile;
+    bool append;
+    bool is_first;
+    bool is_last;
+} Command;
+
+typedef struct Pipeline {
+    Command *cmds;
+    int size;
+} Pipeline;

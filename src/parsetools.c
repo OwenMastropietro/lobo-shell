@@ -9,6 +9,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Prints the given error message and exits.
+void syserror(const char *s, ...) {
+    va_list args;
+    va_start(args, s);
+    vfprintf(stderr, s, args);
+    fprintf(stderr, " (%s)\n", strerror(errno));
+    va_end(args);
+    exit(EXIT_FAILURE);
+}
+
 // Returns a buffer of input read from the command line.
 char *read_line(void) {
     int bufsize = MAX_LINE_CHARS;
@@ -64,6 +74,28 @@ static char *scan_unquoted(char *start) {
     return p;
 }
 
+TokenType get_operator(const char *s, int *len) {
+    if (*s == '|') {
+        *len = 1;
+        return T_PIPE;
+    }
+    if (*s == '<') {
+        *len = 1;
+        return T_REDIR_IN;
+    }
+    if (*s == '>') {
+        if (*(s + 1) == '>') {
+            *len = 2;
+            return T_REDIR_APPEND;
+        }
+        *len = 1;
+        return T_REDIR_OUT;
+    }
+
+    *len = 0;
+    return T_WORD;
+}
+
 /**
  * Returns a stream of tokens by splitting cmd line input on whitespace;
  * preserves quoted sections.
@@ -73,7 +105,10 @@ TokenStream split_cmd_line(char *line) {
     if (!line) {
         return ts;
     }
-    assert(!(strlen(line) > MAX_LINE_CHARS));
+    if (strlen(line) > MAX_LINE_CHARS) {
+        syserror(SHELL_NAME ": command too long.");
+        return ts;
+    }
 
     ts.tokens = calloc(MAX_LINE_TOKENS, sizeof(Token));
     if (!ts.tokens) {
@@ -86,6 +121,18 @@ TokenStream split_cmd_line(char *line) {
         p = skip_ws(p);
         if (*p == '\0') {
             break;
+        }
+
+        int op_len = 0; // fiiw
+        TokenType op_type = get_operator(p, &op_len);
+        if (op_type != T_WORD) {
+            char *op_text = strndup(p, op_len);
+            ts.tokens[ts.size++] = (Token){
+                .type = op_type,
+                .text = op_text,
+            };
+            p += op_len;
+            continue;
         }
 
         char *tok_start;
