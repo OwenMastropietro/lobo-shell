@@ -1,6 +1,5 @@
-#ifndef PARSETOOLS_H
-#define PARSETOOLS_H
+#pragma once
+#include "types.h"
 
-int split_cmd_line(char *line, char *tokens[]);
-
-#endif
+char *read_line(void);
+TokenStream split_cmd_line(char *line);

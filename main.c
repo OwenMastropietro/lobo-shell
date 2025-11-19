@@ -1,7 +1,17 @@
+/**
+ * Implements a unix shell according to the following structure:
+ * <input> -> lexer -> <token-stream> -> parser <pipeline>
+ *
+ * Beautiful baseline:
+ * https://brennan.io/2015/01/16/write-a-shell-in-c/
+ */
+
 #include "constants.h"
 #include "parsetools.h"
+#include "types.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,18 +19,32 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-int main(void) {
-    char line[MAX_LINE_CHARS];
-    char *tokens[MAX_LINE_TOKENS + 1];
+void shell_loop(void) {
+    char *line;
+    TokenStream ts;
+    bool running = true;
 
-    // Loop until user hits Ctrl-D or some other input error occurs.
-    while (fgets(line, MAX_LINE_CHARS, stdin)) {
-        int num_tokens = split_cmd_line(line, tokens);
+    while (running) {
+        line = read_line();
+        ts = split_cmd_line(line);
+        // running = shell_execute(tokens);
 
-        for (int i = 0; i < num_tokens; i++) {
-            printf("%s\n", tokens[i]);
+        for (int i = 0; i < ts.size; i++) {
+            printf("%s\n", ts.tokens[i].text);
         }
-    }
 
-    return 0;
+        free(line);
+        free(ts.tokens);
+    }
+}
+
+int main(void) {
+    // Load config files, if any.
+
+    // Run command loop.
+    shell_loop();
+
+    // Perform any shutdown/cleanup.
+
+    return EXIT_SUCCESS;
 }
