@@ -19,18 +19,30 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+void shell_prompt(bool interactive) {
+    if (interactive) {
+        printf("%s> ", SHELL_NAME);
+        fflush(stdout);
+    }
+}
+
 void shell_loop(void) {
+    bool interactive = isatty(STDERR_FILENO);
+
     char *line;
     TokenStream ts;
     bool running = true;
 
     while (running) {
+        shell_prompt(interactive);
+
         line = read_line();
         ts = split_cmd_line(line);
         // running = shell_execute(tokens);
 
         for (int i = 0; i < ts.size; i++) {
-            printf("%s\n", ts.tokens[i].text);
+            Token t = ts.tokens[i];
+            printf("(Token){.type=%s, .text=%s}\n", tok_name(t.type), t.text);
         }
 
         free(line);
