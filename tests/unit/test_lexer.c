@@ -125,6 +125,21 @@ static TestCase tests[] = {
             .size = 12,
         },
     },
+    {
+        .input = "echo \"hello \\\"world\\\"\" | grep \"foo bar\" > out.txt",
+        .exp = (TokenStream){
+            .tokens = (Token[]){
+                {.type=T_WORD, .text="echo"},
+                {.type=T_WORD, .text="hello \\\"world\\\""},
+                {.type=T_PIPE, .text="|"},
+                {.type=T_WORD, .text="grep"},
+                {.type=T_WORD, .text="foo bar"},
+                {.type=T_REDIR_OUT, .text=">"},
+                {.type=T_WORD, .text="out.txt"},
+            },
+            .size = 7,
+        },
+    },
 };
 
 int main(void) {
