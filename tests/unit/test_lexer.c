@@ -92,6 +92,39 @@ static TestCase tests[] = {
             .size = 3,
         },
     },
+    {
+        .input = "ls /usr/bin | head -10",
+        .exp = (TokenStream){
+            .tokens = (Token[]){
+                {.type=T_WORD, .text="ls"},
+                {.type=T_WORD, .text="/usr/bin"},
+                {.type=T_PIPE, .text="|"},
+                {.type=T_WORD, .text="head"},
+                {.type=T_WORD, .text="-10"},
+            },
+            .size = 5,
+        },
+    },
+    {
+        .input = "grep foo < in.txt | sort > out.txt | uniq >> append.txt",
+        .exp = (TokenStream){
+            .tokens = (Token[]){
+                {.type=T_WORD, .text="grep"},
+                {.type=T_WORD, .text="foo"},
+                {.type=T_REDIR_IN, .text="<"},
+                {.type=T_WORD, .text="in.txt"},
+                {.type=T_PIPE, .text="|"},
+                {.type=T_WORD, .text="sort"},
+                {.type=T_REDIR_OUT, .text=">"},
+                {.type=T_WORD, .text="out.txt"},
+                {.type=T_PIPE, .text="|"},
+                {.type=T_WORD, .text="uniq"},
+                {.type=T_REDIR_APPEND, .text=">>"},
+                {.type=T_WORD, .text="append.txt"},
+            },
+            .size = 12,
+        },
+    },
 };
 
 int main(void) {
