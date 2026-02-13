@@ -74,6 +74,88 @@ static char *scan_unquoted(char *start) {
     return p;
 }
 
+static void cmd_add_arg(Command *cmd, int *cap, const char *arg) {
+    if (cmd->argc + 1 >= *cap) {
+        *cap *= 2;
+        cmd->argv = realloc(cmd->argv, sizeof(char *) * (*cap));
+        assert(cmd->argv);
+    }
+
+    cmd->argv[cmd->argc++] = strdup(arg);
+}
+
+static void cmd_add_redir(Command *cmd, int *cap, TokenType type, const char *filename) {
+    if (cmd->num_redirs + 1 >= *cap) {
+        *cap *= 2;
+        cmd->redirs = realloc(cmd->redirs, sizeof(Redir) * (*cap));
+        assert(cmd->redirs);
+    }
+
+    cmd->redirs[cmd->num_redirs++] = (Redir){
+        .type = type,
+        .filename = strdup(filename),
+    };
+}
+
+static Command parse_command(TokenStream *ts, int *i) {
+    int argv_cap = 8;  // todo
+    int redir_cap = 4; // todo
+    Command cmd = {
+        .argv = malloc(sizeof(char *) * argv_cap),
+        .argc = 0,
+        .redirs = malloc(sizeof(Redir) * redir_cap),
+        .num_redirs = 0,
+    };
+    assert(cmd.argv);
+    assert(cmd.redirs);
+
+    while (*i < ts->size) {
+        Token token = ts->tokens[*i];
+
+        if (token.type == T_PIPE) {
+            break;
+        }
+
+        // Handle Redirects.
+        if (token.type == T_REDIR_IN || token.type == T_REDIR_OUT ||
+            token.type == T_REDIR_APPEND) {
+
+            if (*i + 1 >= ts->size || ts->tokens[*i + 1].type != T_WORD) {
+                syserror(SHELL_NAME
+                         ": Syntax error: expected filename after %s\n",
+                         tok_name(token.type));
+            }
+
+            char *filename = ts->tokens[*i + 1].text;
+            cmd_add_redir(&cmd, &redir_cap, token.type, filename);
+            *i += 2;
+            continue;
+        }
+
+        // Handle Normal Args.
+        if (token.type == T_WORD) {
+            cmd_add_arg(&cmd, &argv_cap, token.text);
+            (*i)++;
+            continue;
+        }
+
+        (*i)++; // skip unexpected token
+        // syserror(SHELL_NAME "Unexpected token: %s\n", tok_name(token->type));
+    }
+
+    // if (cmd->argc >= argv_cap) { // or jsut -1 in other ops
+    //     cmd->argv = realloc(cmd->argv, sizeof(char *) * (argv_cap + 1));
+    // }
+    // cmd->argv[cmd->argc] = NULL; // sentinel
+
+    // if (*i < ts->size && ts->tokens[*i].type == T_PIPE) {
+    //     (*i)++; // skip pipe
+    // }
+
+    cmd.argv[cmd.argc] = NULL;
+    return cmd;
+}
+
 TokenType get_operator(const char *s, int *len) {
     if (*s == '|') {
         *len = 1;
@@ -99,6 +181,13 @@ TokenType get_operator(const char *s, int *len) {
 /**
  * Returns a stream of tokens by splitting cmd line input on whitespace;
  * preserves quoted sections.
+ *
+ * Splits a line into whitespace-delimited tokens, preserving quoted sequences
+ * as single tokens.
+ *
+ * Example:
+ * line:    echo "hello world" | wc -l
+ * tokens:  [echo, "hello world", |, wc, -l]
  */
 TokenStream split_cmd_line(char *line) {
     TokenStream ts = {.tokens = NULL, .size = 0};
@@ -180,4 +269,93 @@ TokenStream split_cmd_line(char *line) {
     }
 
     return ts;
+}
+
+void print_tokens(const TokenStream *ts) {
+    for (int i = 0; i < ts->size; ++i) {
+        Token t = ts->tokens[i];
+        printf("(Token){.type=%s, .text=%s}\n", tok_name(t.type), t.text);
+    }
+}
+
+Pipeline parse_tokens(TokenStream ts) {
+    int cap = 4; // todo
+
+    Pipeline pl = {
+        .cmds = malloc(sizeof(Command) * cap),
+        .size = 0,
+    };
+    assert(pl.cmds);
+
+    int i = 0;
+    while (i < ts.size) {
+        if (pl.size >= cap) {
+            cap *= 2;
+            pl.cmds = realloc(pl.cmds, sizeof(Command) * cap);
+            assert(pl.cmds);
+        }
+
+        pl.cmds[pl.size++] = parse_command(&ts, &i);
+
+        if (i < ts.size && ts.tokens[i].type == T_PIPE) {
+            i++;
+        }
+    }
+
+    return pl;
+}
+
+void print_pipeline(const Pipeline *pl) {
+    if (!pl) {
+        printf("\nEmpty Pipeline.\n");
+        return;
+    }
+
+    printf("\nPipeline (size=%d):\n", pl->size);
+    for (int i = 0; i < pl->size; ++i) {
+        Command *cmd = &pl->cmds[i];
+
+        printf("Command %d:\n", i);
+
+        printf("  argv = [");
+        for (int j = 0; j < cmd->argc; ++j) {
+            printf("\"%s\"", cmd->argv[j]);
+            if (j + 1 < cmd->argc) {
+                printf(", ");
+            }
+        }
+        printf("]\n");
+
+        printf("  redirs = [");
+        for (int j = 0; j < cmd->num_redirs; ++j) {
+            Redir *rd = &cmd->redirs[j];
+            printf("{%s, %s}", tok_name(rd->type), rd->filename);
+            if (j + 1 < cmd->num_redirs) {
+                printf(", ");
+            }
+        }
+        printf("]\n");
+
+        printf("\n");
+    }
+}
+
+void free_pipeline(Pipeline *pl) {
+    if (!pl) {
+        return;
+    }
+
+    for (int i = 0; i < pl->size; ++i) {
+        for (int j = 0; j < pl->cmds[i].argc; ++j) {
+            free(pl->cmds[i].argv[j]);
+        }
+        free(pl->cmds[i].argv);
+
+        for (int j = 0; j < pl->cmds[i].num_redirs; ++j) {
+            free(pl->cmds[i].redirs[j].filename);
+        }
+        free(pl->cmds[i].redirs);
+    }
+
+    free(pl->cmds);
 }

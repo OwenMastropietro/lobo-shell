@@ -31,6 +31,7 @@ void shell_loop(void) {
 
     char *line;
     TokenStream ts;
+    Pipeline pl;
     bool running = true;
 
     while (running) {
@@ -38,15 +39,15 @@ void shell_loop(void) {
 
         line = read_line();
         ts = split_cmd_line(line);
+        pl = parse_tokens(ts);
         // running = shell_execute(tokens);
 
-        for (int i = 0; i < ts.size; i++) {
-            Token t = ts.tokens[i];
-            printf("(Token){.type=%s, .text=%s}\n", tok_name(t.type), t.text);
-        }
+        // print_tokens(&ts);
+        print_pipeline(&pl);
 
-        free(line);
+        free_pipeline(&pl);
         free(ts.tokens);
+        free(line);
     }
 }
 

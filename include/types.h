@@ -30,13 +30,16 @@ typedef struct TokenStream {
     int size;
 } TokenStream;
 
+typedef struct Redir {
+    TokenType type;
+    char *filename;
+} Redir;
+
 typedef struct Command {
     char **argv;
-    char *infile;
-    char *outfile;
-    bool append;
-    bool is_first;
-    bool is_last;
+    int argc;
+    Redir *redirs;
+    int num_redirs;
 } Command;
 
 typedef struct Pipeline {

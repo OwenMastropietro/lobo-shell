@@ -142,7 +142,7 @@ static TestCase tests[] = {
     },
 };
 
-int main(void) {
+void test_lexer(void) {
     static const int num_tests = sizeof(tests) / sizeof(TestCase);
 
     for (int i = 0; i < num_tests; i++) {
@@ -169,7 +169,5 @@ int main(void) {
         free(res.tokens);
     }
 
-    printf("passed.\n\n");
-
-    return 0;
+    printf("  parser - passed\n");
 }
