@@ -192,11 +192,11 @@ void test_parser(void) {
     static const int num_tests = sizeof(tests) / sizeof(TestCase);
 
     for (int i = 0; i < num_tests; ++i) {
-        Pipeline res = parse_tokens(tests[i].input);
+        Pipeline res = parser(tests[i].input);
         Pipeline exp = tests[i].exp;
 
         assert(res.size == exp.size);
-        
+
         for (int j = 0; j < res.size; ++j) {
             assert(res.cmds[j].argc == exp.cmds[j].argc);
             assert(res.cmds[j].num_redirs == exp.cmds[j].num_redirs);
@@ -204,11 +204,13 @@ void test_parser(void) {
                 assert(strcmp(res.cmds[j].argv[k], exp.cmds[j].argv[k]) == 0);
             }
             for (int k = 0; k < res.cmds[j].num_redirs; ++k) {
-                assert(res.cmds[j].redirs[k].type == exp.cmds[j].redirs[k].type);
-                assert(strcmp(res.cmds[j].redirs[k].filename, exp.cmds[j].redirs[k].filename) == 0);
+                assert(res.cmds[j].redirs[k].type ==
+                       exp.cmds[j].redirs[k].type);
+                assert(strcmp(res.cmds[j].redirs[k].filename,
+                              exp.cmds[j].redirs[k].filename) == 0);
             }
         }
-        
+
         free_pipeline(&res);
     }
 

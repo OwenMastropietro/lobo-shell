@@ -84,7 +84,8 @@ static void cmd_add_arg(Command *cmd, int *cap, const char *arg) {
     cmd->argv[cmd->argc++] = strdup(arg);
 }
 
-static void cmd_add_redir(Command *cmd, int *cap, TokenType type, const char *filename) {
+static void cmd_add_redir(Command *cmd, int *cap, TokenType type,
+                          const char *filename) {
     if (cmd->num_redirs + 1 >= *cap) {
         *cap *= 2;
         cmd->redirs = realloc(cmd->redirs, sizeof(Redir) * (*cap));
@@ -189,7 +190,7 @@ TokenType get_operator(const char *s, int *len) {
  * line:    echo "hello world" | wc -l
  * tokens:  [echo, "hello world", |, wc, -l]
  */
-TokenStream split_cmd_line(char *line) {
+TokenStream lexer(char *line) {
     TokenStream ts = {.tokens = NULL, .size = 0};
     if (!line) {
         return ts;
@@ -278,7 +279,7 @@ void print_tokens(const TokenStream *ts) {
     }
 }
 
-Pipeline parse_tokens(TokenStream ts) {
+Pipeline parser(TokenStream ts) {
     int cap = 4; // todo
 
     Pipeline pl = {

@@ -38,8 +38,8 @@ void shell_loop(void) {
         shell_prompt(interactive);
 
         line = read_line();
-        ts = split_cmd_line(line);
-        pl = parse_tokens(ts);
+        ts = lexer(line);
+        pl = parser(ts);
         // running = shell_execute(tokens);
 
         // print_tokens(&ts);
